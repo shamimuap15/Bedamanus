@@ -6,9 +6,10 @@ import { login } from "../actions";
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
   return (
-    <div className="admin-root flex items-center justify-center p-4">
-      <form action={action} className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-[#e4e4e0] bg-white p-6 shadow-sm">
+    <div className="admin-root flex items-center justify-center p-4" style={{ background: "radial-gradient(1200px 500px at 50% -10%, #e9ffb0 0%, #f4f5f7 60%)" }}>
+      <form action={action} className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-[#e6e8ec] bg-white p-8 shadow-lg">
         <div>
+          <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-accent text-xl font-extrabold">B</span>
           <h1 className="m-0 text-xl font-bold">BedaManush Admin</h1>
           <p className="m-0 text-sm text-[#666]">Sign in to manage the landing page and orders.</p>
         </div>
