@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --color-ground: #1f1f1f;
+  --color-band: #19191b;
+  --color-card: #29292d;
+  --color-line: #34343a;
+  --color-line2: #48484f;
+  --color-fg: #f4f2ee;
+  --color-soft: #d6d4cf;
+  --color-muted: #ababb2;
+  --color-tile: #efede8;
+}
+
+:root {
+  --accent: #c8ff3d;
+  --on-accent: #1f1f1f;
+}
+
+/* Brand accent helpers — the colour comes from admin settings at runtime. */
+.bg-accent { background-color: var(--accent); color: var(--on-accent); }
+.text-accent { color: var(--accent); }
+.border-accent { border-color: var(--accent); }
+.bg-tint { background-color: color-mix(in srgb, var(--accent) 16%, #1f1f1f); }
+.bg-tint-2 { background-color: color-mix(in srgb, var(--accent) 9%, #29292d); }
+.hl {
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 0 10px;
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+html { scroll-behavior: smooth; }
+body { background: #0b0b0c; }
+
+/* Admin panel uses a light theme */
+.admin-root { background: #f6f6f4; color: #1f1f1f; min-height: 100vh; }
+.admin-input {
+  width: 100%;
+  border: 1px solid #d4d4d0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  font-size: 15px;
+}
+.admin-input:focus { outline: 2px solid #1f1f1f; outline-offset: 0; }
+.admin-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 14px;
+  background: #1f1f1f; color: #fff; min-height: 38px; cursor: pointer;
+}
+.admin-btn:disabled { opacity: .5; cursor: default; }
+.admin-btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 8px; padding: 8px 12px; font-weight: 600; font-size: 14px;
+  background: #fff; color: #1f1f1f; border: 1px solid #d4d4d0; min-height: 38px; cursor: pointer;
+}
+.admin-btn-danger { color: #b42318; }
