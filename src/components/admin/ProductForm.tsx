@@ -1,18 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import type { Product } from "@/db/schema";
+import type { Page, Product } from "@/db/schema";
 import { deleteProduct, saveProduct } from "@/app/admin/actions";
 import { MediaInput } from "./MediaInput";
 
-export function ProductForm({ product }: { product: Product | null }) {
+export function ProductForm({ product, pages }: { product: Product | null; pages: Pick<Page, "id" | "title" | "slug">[] }) {
   const [image, setImage] = useState(product?.image ?? "");
   const pid = product?.id ?? "new";
-  return (
-    <div className="rounded-xl border border-[#e4e4e0] bg-white p-4">
+  const pageName = pages.find((p) => p.id === product?.pageId)?.title;
+  const wrap = (children: React.ReactNode) =>
+    product ? (
+      <details className="group rounded-xl border border-[#e7e5df] bg-white">
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
+          <span className="bg-tile h-12 w-12 flex-none overflow-hidden rounded-lg bg-[#efede8]">
+            {product.image && /* eslint-disable-next-line @next/next/no-img-element */ <img src={product.image} alt="" className="h-full w-full object-cover" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-extrabold">{product.name}</span>
+            <span className="block text-xs text-[#6f6e76]">{pageName ?? "No page"} · ৳{product.price.toLocaleString("en-IN")}{product.comparePrice ? ` (was ৳${product.comparePrice.toLocaleString("en-IN")})` : ""}</span>
+          </span>
+          {!product.active && <span className="rounded-full bg-[#efefec] px-2 py-0.5 text-xs font-semibold text-[#666]">Inactive</span>}
+          <span aria-hidden className="text-lg transition group-open:rotate-90">›</span>
+        </summary>
+        <div className="border-t border-[#efefec] p-4">{children}</div>
+      </details>
+    ) : (
+      <div className="p-4">{children}</div>
+    );
+  return wrap(
+    <>
       <form action={saveProduct} className="grid gap-3 md:grid-cols-2">
         <input type="hidden" name="id" value={product?.id ?? ""} />
         <input type="hidden" name="image" value={image} />
+        <label className="flex flex-col gap-1 text-sm font-semibold md:col-span-2">Landing page
+          <select name="pageId" defaultValue={product?.pageId ?? pages[0]?.id ?? ""} className="admin-input">
+            {pages.map((p) => <option key={p.id} value={p.id}>{p.title} (/{p.slug})</option>)}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm font-semibold">Name<input name="name" defaultValue={product?.name ?? ""} required className="admin-input" /></label>
         <label className="flex flex-col gap-1 text-sm font-semibold">Short description<input name="subtitle" defaultValue={product?.subtitle ?? ""} className="admin-input" /></label>
         <label className="flex flex-col gap-1 text-sm font-semibold">Sale price (৳)<input name="price" type="number" min={0} defaultValue={product?.price ?? ""} required className="admin-input" /></label>
@@ -38,6 +63,6 @@ export function ProductForm({ product }: { product: Product | null }) {
           </button>
         </form>
       )}
-    </div>
+    </>,
   );
 }

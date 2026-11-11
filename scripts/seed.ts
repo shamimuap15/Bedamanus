@@ -7,7 +7,9 @@ import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "../src/db/schema";
+import { eq, isNull } from "drizzle-orm";
 import { DEFAULT_SETTINGS, SECTION_DEFS } from "../src/lib/sections";
+import { DESIGN_DEFAULTS } from "../src/lib/design";
 
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false, max: 1 });
 const db = drizzle(sql, { schema });
@@ -123,7 +125,8 @@ async function main() {
     await db.delete(schema.sections);
     await db.delete(schema.products);
     await db.delete(schema.settings);
-    console.log("Cleared settings, sections and products.");
+    await db.delete(schema.pages);
+    console.log("Cleared settings, pages, sections and products.");
   }
 
   const existingSettings = await db.select().from(schema.settings);
@@ -152,6 +155,21 @@ async function main() {
     ]);
     console.log("Seeded 1 product (placeholder price ৳990 — change it in /admin/products).");
   }
+
+  // Landing pages: make sure a home page exists and everything created before multi-page support belongs to it.
+  let [home] = await db.select().from(schema.pages).where(eq(schema.pages.isHome, true));
+  if (!home) {
+    const [site] = await db.select().from(schema.settings).where(eq(schema.settings.key, "site"));
+    const design = Object.fromEntries(Object.entries(site?.data ?? {}).filter(([k]) => k in DESIGN_DEFAULTS));
+    [home] = await db
+      .insert(schema.pages)
+      .values({ slug: "home", title: "Home", template: "classic", isHome: true, settings: { ...DESIGN_DEFAULTS, ...design } })
+      .returning();
+    console.log("Created the home page.");
+  }
+  await db.update(schema.sections).set({ pageId: home.id }).where(isNull(schema.sections.pageId));
+  await db.update(schema.products).set({ pageId: home.id }).where(isNull(schema.products.pageId));
+  await db.update(schema.orders).set({ pageId: home.id }).where(isNull(schema.orders.pageId));
 
   await sql.end();
 }

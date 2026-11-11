@@ -3,12 +3,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { ORDER_STATUSES, type OrderStatus } from "@/db/schema";
 import { SESSION_COOKIE, createSessionToken, safeEqual, sessionCookieOptions } from "@/lib/auth";
 import { requireAdmin } from "@/lib/admin";
 import { DEFAULT_SETTINGS, SECTION_DEFS, type SectionType } from "@/lib/sections";
+import { getTemplate } from "@/templates";
 
 function refreshSite() {
   revalidatePath("/", "layout");
@@ -83,78 +84,183 @@ export async function deleteOrder(formData: FormData) {
   redirect("/admin/orders");
 }
 
-/* ---------------- sections ---------------- */
+/* ---------------- pages ---------------- */
 
-export async function createSection(formData: FormData) {
+const RESERVED_SLUGS = new Set(["admin", "api", "thank-you", "_next", "seed", "uploads", "favicon.ico", "robots.txt", "sitemap.xml"]);
+
+function slugify(input: string) {
+  return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
+
+async function uniqueSlug(base: string) {
+  let slug = slugify(base) || "page";
+  if (RESERVED_SLUGS.has(slug)) slug += "-page";
+  let n = 2;
+  while (await db.query.pages.findFirst({ where: eq(schema.pages.slug, slug) })) slug = `${slugify(base) || "page"}-${n++}`;
+  return slug;
+}
+
+export async function createPage(formData: FormData) {
   await requireAdmin();
-  const type = String(formData.get("type")) as SectionType;
-  const def = SECTION_DEFS[type];
-  if (!def) return;
-  if (def.single) {
-    const exists = await db.query.sections.findFirst({ where: eq(schema.sections.type, type) });
-    if (exists) redirect(`/admin/sections/${exists.id}`);
+  const title = String(formData.get("title") ?? "").trim() || "New page";
+  const tpl = getTemplate(String(formData.get("template") ?? "classic"));
+  const slug = await uniqueSlug(String(formData.get("slug") ?? "") || title);
+  const any = await db.query.pages.findFirst();
+  const [page] = await db
+    .insert(schema.pages)
+    .values({ slug, title, template: tpl.key, isHome: !any, settings: structuredClone(tpl.design) })
+    .returning({ id: schema.pages.id });
+  for (let i = 0; i < tpl.starter.length; i++) {
+    const st = tpl.starter[i];
+    await db.insert(schema.sections).values({
+      pageId: page.id,
+      type: st.type,
+      position: i,
+      enabled: true,
+      data: structuredClone({ ...SECTION_DEFS[st.type].defaults, ...(st.data ?? {}) }),
+    });
   }
-  const last = await db.query.sections.findFirst({ orderBy: [desc(schema.sections.position)] });
+  for (let i = 0; i < (tpl.starterProducts ?? []).length; i++) {
+    const sp = tpl.starterProducts![i];
+    await db.insert(schema.products).values({ pageId: page.id, name: sp.name, subtitle: sp.subtitle ?? "", price: sp.price, comparePrice: sp.comparePrice ?? null, image: sp.image ?? "", sortOrder: i });
+  }
+  refreshSite();
+  redirect(`/admin/editor?page=${page.id}`);
+}
+
+export async function duplicatePage(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const src = await db.query.pages.findFirst({ where: eq(schema.pages.id, id) });
+  if (!src) return;
+  const slug = await uniqueSlug(`${src.slug}-copy`);
+  const [page] = await db
+    .insert(schema.pages)
+    .values({ slug, title: `${src.title} (copy)`, template: src.template, isHome: false, published: false, settings: src.settings })
+    .returning({ id: schema.pages.id });
+  const secs = await db.select().from(schema.sections).where(eq(schema.sections.pageId, id)).orderBy(asc(schema.sections.position), asc(schema.sections.id));
+  for (const sec of secs) {
+    await db.insert(schema.sections).values({ pageId: page.id, type: sec.type, position: sec.position, enabled: sec.enabled, data: sec.data });
+  }
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/editor?page=${page.id}`);
+}
+
+export async function setHomePage(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  await db.transaction(async (tx) => {
+    await tx.update(schema.pages).set({ isHome: false });
+    await tx.update(schema.pages).set({ isHome: true, published: true }).where(eq(schema.pages.id, id));
+  });
+  refreshSite();
+  revalidatePath("/admin/pages");
+}
+
+export async function togglePagePublished(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const p = await db.query.pages.findFirst({ where: eq(schema.pages.id, id) });
+  if (!p || p.isHome) return;
+  await db.update(schema.pages).set({ published: !p.published, updatedAt: new Date() }).where(eq(schema.pages.id, id));
+  refreshSite();
+  revalidatePath("/admin/pages");
+}
+
+export async function deletePage(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const p = await db.query.pages.findFirst({ where: eq(schema.pages.id, id) });
+  if (!p || p.isHome) return;
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.sections).where(eq(schema.sections.pageId, id));
+    await tx.update(schema.products).set({ pageId: null }).where(eq(schema.products.pageId, id));
+    await tx.delete(schema.pages).where(eq(schema.pages.id, id));
+  });
+  refreshSite();
+  revalidatePath("/admin/pages");
+}
+
+/** Theme editor: create a hidden section row and hand it back to the client. */
+export async function addSectionRow(pageId: number, type: SectionType) {
+  await requireAdmin();
+  const def = SECTION_DEFS[type];
+  if (!def) throw new Error("Unknown section type");
+  if (def.single) {
+    const exists = await db.query.sections.findFirst({ where: and(eq(schema.sections.pageId, pageId), eq(schema.sections.type, type)) });
+    if (exists) throw new Error("This section already exists");
+  }
+  const last = await db.query.sections.findFirst({ where: eq(schema.sections.pageId, pageId), orderBy: [desc(schema.sections.position)] });
   const [row] = await db
     .insert(schema.sections)
-    .values({ type, data: structuredClone(def.defaults), position: (last?.position ?? -1) + 1, enabled: false })
-    .returning({ id: schema.sections.id });
-  refreshSite();
-  redirect(`/admin/sections/${row.id}`);
+    .values({ pageId, type, data: structuredClone(def.defaults), position: (last?.position ?? -1) + 1, enabled: false })
+    .returning();
+  return { id: row.id, type: row.type, data: row.data as Record<string, unknown>, enabled: row.enabled };
 }
 
-export async function saveSection(id: number, data: Record<string, unknown>) {
+export async function duplicateSectionRow(id: number) {
   await requireAdmin();
-  await db.update(schema.sections).set({ data, updatedAt: new Date() }).where(eq(schema.sections.id, id));
-  refreshSite();
-  return { ok: true, savedAt: new Date().toISOString() };
+  const src = await db.query.sections.findFirst({ where: eq(schema.sections.id, id) });
+  if (!src || !src.pageId) throw new Error("Section not found");
+  if (SECTION_DEFS[src.type as SectionType]?.single) throw new Error("This section can only be added once");
+  const last = await db.query.sections.findFirst({ where: eq(schema.sections.pageId, src.pageId), orderBy: [desc(schema.sections.position)] });
+  const [row] = await db
+    .insert(schema.sections)
+    .values({ pageId: src.pageId, type: src.type, data: structuredClone(src.data), position: (last?.position ?? -1) + 1, enabled: false })
+    .returning();
+  return { id: row.id, type: row.type, data: row.data as Record<string, unknown>, enabled: row.enabled };
 }
 
-export async function toggleSection(formData: FormData) {
+export async function removeSectionRow(id: number) {
   await requireAdmin();
-  const id = Number(formData.get("id"));
-  const s = await db.query.sections.findFirst({ where: eq(schema.sections.id, id) });
-  if (!s) return;
-  await db.update(schema.sections).set({ enabled: !s.enabled }).where(eq(schema.sections.id, id));
+  await db.delete(schema.sections).where(eq(schema.sections.id, id));
   refreshSite();
+  return { ok: true };
 }
 
-export async function moveSection(formData: FormData) {
+/** Theme editor: save one page (design/SEO overrides, template, slug) + site-wide settings + every section in one go. */
+export async function saveEditor(input: {
+  pageId: number;
+  site: Record<string, unknown>;
+  page: { title: string; slug: string; template: string; settings: Record<string, unknown> };
+  sections: { id: number; data: Record<string, unknown>; enabled: boolean }[];
+}) {
   await requireAdmin();
-  const id = Number(formData.get("id"));
-  const dir = String(formData.get("dir"));
-  // Normalise positions first so swaps are always well-defined.
-  const all = await db.select().from(schema.sections).orderBy(asc(schema.sections.position), asc(schema.sections.id));
-  const idx = all.findIndex((s) => s.id === id);
-  const swapWith = dir === "up" ? idx - 1 : idx + 1;
-  if (idx < 0 || swapWith < 0 || swapWith >= all.length) return;
-  [all[idx], all[swapWith]] = [all[swapWith], all[idx]];
+  const current = await db.query.pages.findFirst({ where: eq(schema.pages.id, input.pageId) });
+  if (!current) throw new Error("Page not found");
+
+  const site: Record<string, unknown> = {};
+  for (const k of Object.keys(DEFAULT_SETTINGS)) if (k in input.site) site[k] = input.site[k];
+  const pageSettings: Record<string, unknown> = {};
+  for (const k of Object.keys(DEFAULT_SETTINGS)) if (k in input.page.settings) pageSettings[k] = input.page.settings[k];
+
+  let slug = current.slug;
+  if (!current.isHome && slugify(input.page.slug) && slugify(input.page.slug) !== current.slug) {
+    const want = slugify(input.page.slug);
+    const clash = await db.query.pages.findFirst({ where: eq(schema.pages.slug, want) });
+    if (RESERVED_SLUGS.has(want) || (clash && clash.id !== current.id)) throw new Error("That URL is already used");
+    slug = want;
+  }
+
   await db.transaction(async (tx) => {
-    for (let i = 0; i < all.length; i++) {
-      await tx.update(schema.sections).set({ position: i }).where(eq(schema.sections.id, all[i].id));
+    await tx
+      .insert(schema.settings)
+      .values({ key: "site", data: site })
+      .onConflictDoUpdate({ target: schema.settings.key, set: { data: site, updatedAt: new Date() } });
+    await tx
+      .update(schema.pages)
+      .set({ title: input.page.title.trim() || current.title, slug, template: getTemplate(input.page.template).key, settings: pageSettings, updatedAt: new Date() })
+      .where(eq(schema.pages.id, input.pageId));
+    for (let i = 0; i < input.sections.length; i++) {
+      const sec = input.sections[i];
+      await tx
+        .update(schema.sections)
+        .set({ data: sec.data, enabled: Boolean(sec.enabled), position: i, updatedAt: new Date() })
+        .where(and(eq(schema.sections.id, Number(sec.id)), eq(schema.sections.pageId, input.pageId)));
     }
   });
   refreshSite();
-}
-
-export async function duplicateSection(formData: FormData) {
-  await requireAdmin();
-  const id = Number(formData.get("id"));
-  const s = await db.query.sections.findFirst({ where: eq(schema.sections.id, id) });
-  if (!s || SECTION_DEFS[s.type as SectionType]?.single) return;
-  // Shift everything after it down by one.
-  const after = await db.select().from(schema.sections).where(gt(schema.sections.position, s.position));
-  for (const a of after) await db.update(schema.sections).set({ position: a.position + 1 }).where(eq(schema.sections.id, a.id));
-  await db.insert(schema.sections).values({ type: s.type, data: s.data, position: s.position + 1, enabled: false });
-  refreshSite();
-}
-
-export async function deleteSection(formData: FormData) {
-  await requireAdmin();
-  const id = Number(formData.get("id"));
-  await db.delete(schema.sections).where(eq(schema.sections.id, id));
-  refreshSite();
-  redirect("/admin/sections");
+  return { ok: true, savedAt: new Date().toISOString(), slug };
 }
 
 /* ---------------- products ---------------- */
@@ -163,6 +269,7 @@ export async function saveProduct(formData: FormData) {
   await requireAdmin();
   const id = Number(formData.get("id")) || 0;
   const values = {
+    pageId: Number(formData.get("pageId")) || null,
     name: String(formData.get("name") ?? "").trim() || "Untitled",
     subtitle: String(formData.get("subtitle") ?? "").trim(),
     price: Math.max(0, Math.round(Number(formData.get("price")) || 0)),

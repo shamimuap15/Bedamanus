@@ -1,5 +1,6 @@
 "use client";
 
+import { parseVideo } from "@/lib/video";
 import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 
@@ -66,14 +67,18 @@ export function MediaInput({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={value} alt="" className="h-full w-full object-cover" />
             ) : (
-              <video src={value} className="h-full w-full object-cover" muted preload="metadata" />
+              parseVideo(value).kind === "file" ? (
+                <video src={value} className="h-full w-full object-cover" muted preload="metadata" />
+              ) : (
+                <span className="px-1 text-center text-[11px] leading-tight font-bold text-[#121214]">▶ {parseVideo(value).kind === "youtube" ? "YouTube" : "Vimeo"}</span>
+              )
             )
           ) : (
             <span className="text-xs text-[#888]">No {kind}</span>
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={`Paste ${kind} URL or upload`} className="admin-input" />
+          <input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={kind === "video" ? "Paste YouTube / Vimeo link, MP4 URL, or upload" : "Paste image URL or upload"} className="admin-input" />
           <div className="flex flex-wrap gap-2">
             <button type="button" className="admin-btn-ghost" disabled={busy} onClick={() => fileRef.current?.click()}>
               {busy ? `Uploading… ${pct ? pct + "%" : ""}` : `Upload ${kind}`}

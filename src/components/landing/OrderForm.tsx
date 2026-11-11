@@ -8,10 +8,12 @@ import { track } from "./pixel";
 type P = { id: number; name: string; subtitle: string; price: number; comparePrice: number | null; image: string };
 
 export function OrderForm({
+  pageId,
   products,
   labels,
   delivery,
 }: {
+  pageId?: number;
   products: P[];
   labels: { name: string; phone: string; address: string; button: string; note: string };
   delivery: { inside: number; outside: number; insideLabel: string; outsideLabel: string };
@@ -48,6 +50,7 @@ export function OrderForm({
       phone: String(fd.get("phone") ?? ""),
       address: String(fd.get("address") ?? ""),
       note: String(fd.get("note") ?? ""),
+      pageId,
       productId: product.id,
       qty,
       area,
@@ -81,7 +84,7 @@ export function OrderForm({
   }
 
   const inputCls =
-    "bg-ground border-line2 text-fg min-h-12 w-full rounded-[10px] border px-3.5 py-3 text-base placeholder:text-[#8a8a91] focus:border-[var(--accent)] focus:outline-none";
+    "bg-ground border-line2 text-fg min-h-12 w-full r-sm border px-3.5 py-3 text-base placeholder:text-[#8a8a91] focus:border-[var(--accent)] focus:outline-none";
 
   return (
     <form onSubmit={onSubmit} onFocus={onStart} className="flex flex-col gap-4" noValidate>
@@ -93,7 +96,7 @@ export function OrderForm({
           return (
             <label
               key={p.id}
-              className={`bg-card flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 ${selected ? "border-accent" : "border-transparent"}`}
+              className={`bg-card flex cursor-pointer items-center gap-3 r-md border-2 p-3 ${selected ? "border-accent" : "border-transparent"}`}
             >
               <input
                 type="radio"
@@ -103,7 +106,7 @@ export function OrderForm({
                 onChange={() => setProductId(p.id)}
                 className="sr-only"
               />
-              <span className="bg-tile h-[68px] w-[68px] flex-none overflow-hidden rounded-xl">
+              <span className="bg-tile h-[68px] w-[68px] flex-none overflow-hidden r-sm">
                 {p.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.image} alt="" className="block h-full w-full object-contain" />
@@ -132,7 +135,7 @@ export function OrderForm({
       {/* Quantity */}
       <div className="flex items-center justify-between">
         <span className="text-soft">পরিমাণ</span>
-        <div className="border-line2 flex items-center overflow-hidden rounded-[10px] border">
+        <div className="border-line2 flex items-center overflow-hidden r-sm border">
           <button type="button" aria-label="পরিমাণ কমান" onClick={() => setQty((q) => Math.max(1, q - 1))} className="bg-ground text-fg h-11 w-11 text-xl">−</button>
           <span className="w-10 text-center font-bold" aria-live="polite">{toBn(qty)}</span>
           <button type="button" aria-label="পরিমাণ বাড়ান" onClick={() => setQty((q) => Math.min(10, q + 1))} className="bg-ground text-fg h-11 w-11 text-xl">+</button>
@@ -162,7 +165,7 @@ export function OrderForm({
         <fieldset className="m-0 grid grid-cols-2 gap-2 border-0 p-0">
           <legend className="mb-1 text-[15px] font-semibold">ডেলিভারি এলাকা</legend>
           {(["inside", "outside"] as const).map((a) => (
-            <label key={a} className={`bg-card flex min-h-12 cursor-pointer flex-col justify-center rounded-xl border-2 px-3 py-2 ${area === a ? "border-accent" : "border-transparent"}`}>
+            <label key={a} className={`bg-card flex min-h-12 cursor-pointer flex-col justify-center r-sm border-2 px-3 py-2 ${area === a ? "border-accent" : "border-transparent"}`}>
               <input type="radio" name="area" value={a} checked={area === a} onChange={() => setArea(a)} className="sr-only" />
               <span className="font-semibold">{a === "inside" ? delivery.insideLabel : delivery.outsideLabel}</span>
               <span className="text-muted text-sm">{taka(a === "inside" ? delivery.inside : delivery.outside)}</span>
@@ -172,15 +175,15 @@ export function OrderForm({
       )}
 
       {/* Summary */}
-      <div className="bg-card flex flex-col gap-2 rounded-[14px] px-4 py-3.5 text-[15px]">
+      <div className="bg-card flex flex-col gap-2 r-md px-4 py-3.5 text-[15px]">
         <div className="flex justify-between"><span className="text-soft">সাবটোটাল</span><span>{taka(subtotal)}</span></div>
         <div className="flex justify-between"><span className="text-soft">ডেলিভারি</span><span>{deliveryCharge === 0 ? "ফ্রি" : taka(deliveryCharge)}</span></div>
         <div className="border-line flex justify-between border-t pt-2 text-xl font-bold"><span>সর্বমোট</span><span className="text-accent">{taka(total)}</span></div>
       </div>
 
-      {formError && <p role="alert" className="m-0 rounded-lg bg-[#3a1f1f] px-3 py-2 text-center text-[#ffb4b4]">{formError}</p>}
+      {formError && <p role="alert" className="m-0 r-sm bg-[#3a1f1f] px-3 py-2 text-center text-[#ffb4b4]">{formError}</p>}
 
-      <button type="submit" disabled={submitting} className="bg-accent min-h-[58px] rounded-[14px] text-xl font-bold disabled:opacity-60">
+      <button type="submit" disabled={submitting} className="bg-accent cta-shadow btn-shape min-h-[60px] text-xl font-extrabold disabled:opacity-60">
         {submitting ? "অপেক্ষা করুন…" : labels.button}
       </button>
       {labels.note && <p className="text-muted m-0 text-center text-sm">{labels.note}</p>}

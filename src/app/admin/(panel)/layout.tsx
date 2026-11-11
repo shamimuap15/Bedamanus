@@ -13,10 +13,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       <aside className="admin-side sticky top-0 z-30 flex flex-col gap-3 p-3 lg:h-screen lg:w-64 lg:flex-none lg:gap-6 lg:p-5">
         <div className="flex items-center justify-between gap-3">
           <Link href="/admin" className="flex items-center gap-2.5 no-underline">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-lg font-extrabold">B</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-lg font-extrabold shadow-[0_8px_24px_-8px_var(--accent)]">B</span>
             <span className="leading-tight">
               <span className="block text-[15px] font-bold text-white">BedaManush</span>
-              <span className="block text-xs text-[#8b93a3]">Admin panel</span>
+              <span className="block text-[10px] font-bold uppercase tracking-[.16em] text-[#7d7d88]">Admin panel</span>
             </span>
           </Link>
           <form action={logout} className="lg:hidden"><button className="rounded-lg border border-white/15 px-3 py-1.5 text-sm font-semibold text-white">Log out</button></form>
@@ -27,7 +27,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <form action={logout}><button className="admin-navlink w-full cursor-pointer">⎋ Log out</button></form>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8">
+      <main className="min-w-0 flex-1 px-4 py-6 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-6xl">
           <div className="mb-4 flex justify-end lg:hidden"><a href="/" target="_blank" rel="noreferrer" className="admin-btn-ghost no-underline">View site ↗</a></div>
           {children}

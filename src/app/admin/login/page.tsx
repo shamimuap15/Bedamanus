@@ -6,11 +6,11 @@ import { login } from "../actions";
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
   return (
-    <div className="admin-root flex items-center justify-center p-4" style={{ background: "radial-gradient(1200px 500px at 50% -10%, #e9ffb0 0%, #f4f5f7 60%)" }}>
-      <form action={action} className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-[#e6e8ec] bg-white p-8 shadow-lg">
+    <div className="admin-root flex items-center justify-center p-4" style={{ background: "radial-gradient(900px 520px at 50% -8%, color-mix(in srgb, var(--accent) 55%, transparent) 0%, transparent 65%), #f3f2ee" }}>
+      <form action={action} className="flex w-full max-w-sm flex-col gap-4 rounded-[28px] border border-[#e7e5df] bg-white p-9 shadow-[0_30px_80px_-30px_rgba(18,18,20,.35)]">
         <div>
-          <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-accent text-xl font-extrabold">B</span>
-          <h1 className="m-0 text-xl font-bold">BedaManush Admin</h1>
+          <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-accent text-xl font-extrabold">B</span>
+          <h1 className="m-0 text-3xl">BedaManush Admin</h1>
           <p className="m-0 text-sm text-[#666]">Sign in to manage the landing page and orders.</p>
         </div>
         <label className="flex flex-col gap-1 text-sm font-semibold">

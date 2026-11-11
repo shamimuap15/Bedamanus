@@ -2,25 +2,27 @@ import { Icon } from "@/components/Icon";
 import { list, str, taka, toBn, type Settings } from "@/lib/sections";
 import type { Product } from "@/db/schema";
 import { OrderForm } from "./OrderForm";
+import { VideoPlayer } from "./VideoPlayer";
+import { BeforeAfter, Countdown, Features, VideoSection } from "./extra";
 
-type D = Record<string, unknown>;
-type Ctx = { settings: Settings; products: Product[] };
+export type D = Record<string, unknown>;
+export type Ctx = { settings: Settings; products: Product[]; pageId?: number };
 
-const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="m-0 text-center text-[26px] font-bold leading-tight">{children}</h2>
+export const H2 = ({ children }: { children: React.ReactNode }) => (
+  <h2 className="m-0 text-center text-[28px] font-extrabold leading-tight tracking-tight">{children}</h2>
 );
 
-function Img({ src, alt, className = "", eager = false }: { src: string; alt: string; className?: string; eager?: boolean }) {
+export function Img({ src, alt, className = "", eager = false }: { src: string; alt: string; className?: string; eager?: boolean }) {
   if (!src) return <div className={`bg-tile ${className}`} aria-hidden />;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt={alt} loading={eager ? "eager" : "lazy"} decoding="async" className={`block h-full w-full object-cover ${className}`} />;
 }
 
-function OrderButton({ text, className = "" }: { text: string; className?: string }) {
+export function OrderButton({ text, className = "" }: { text: string; className?: string }) {
   return (
     <a
       href="#order"
-      className={`bg-accent flex min-h-[58px] items-center justify-center gap-2.5 rounded-[14px] text-xl font-bold no-underline ${className}`}
+      className={`bg-accent cta-shadow btn-shape flex min-h-[60px] items-center justify-center gap-2.5 text-xl font-extrabold no-underline transition active:translate-y-px ${className}`}
     >
       {text}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -37,7 +39,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
   const poster = str(d.poster);
   const autoplay = d.autoplay !== false;
   return (
-    <section className="flex flex-col gap-[18px] px-[18px] pt-5 pb-9">
+    <section className="hero-glow flex flex-col gap-[18px] px-[18px] pt-5 pb-9">
       <div className="flex flex-col items-center gap-3 text-center">
         {str(d.badge) && (
           <span className="bg-tint text-accent inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-sm font-bold">
@@ -48,7 +50,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
             {str(d.badge)}
           </span>
         )}
-        <h1 className="m-0 text-[36px] leading-[1.15] font-bold">
+        <h1 className="m-0 text-[length:var(--h1)] leading-[1.12] font-extrabold tracking-tight">
           {str(d.titleLine1)}
           {str(d.titleHighlight) && (
             <>
@@ -61,20 +63,9 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
       </div>
 
       <div className="relative">
-        <div className="border-line aspect-square overflow-hidden rounded-[22px] border bg-black">
+        <div className="border-line aspect-square overflow-hidden r-lg border bg-black">
           {video ? (
-            <video
-              src={video}
-              poster={poster || undefined}
-              controls
-              playsInline
-              muted={autoplay}
-              autoPlay={autoplay}
-              loop={autoplay}
-              preload="metadata"
-              aria-label={str(d.titleLine1)}
-              className="block h-full w-full object-cover"
-            />
+            <VideoPlayer src={video} poster={poster} autoplay={autoplay} label={str(d.titleLine1)} />
           ) : (
             <Img src={poster} alt={str(d.titleLine1)} eager className="bg-tile object-contain" />
           )}
@@ -86,7 +77,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
           </div>
         )}
         {str(d.ribbonTop) && (
-          <div className="bg-accent pointer-events-none absolute right-3 bottom-3 rounded-[14px] px-3.5 py-2 text-center leading-[1.1]">
+          <div className="bg-accent pointer-events-none absolute right-3 bottom-3 r-md px-3.5 py-2 text-center leading-[1.1]">
             <div className="text-[26px] font-bold">{str(d.ribbonTop)}</div>
             <div className="text-[13px] font-semibold">{str(d.ribbonBottom)}</div>
           </div>
@@ -97,7 +88,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
         <div className="grid grid-cols-3 gap-2.5">
           {list(d.thumbs).map((t, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
-              <div className="bg-tile aspect-square w-full overflow-hidden rounded-[14px]">
+              <div className="bg-tile aspect-square w-full overflow-hidden r-md">
                 <Img src={str(t.image)} alt={str(t.label)} />
               </div>
               <span className="text-center text-[13px] font-semibold">{str(t.label)}</span>
@@ -109,7 +100,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
       {d.showPrice !== false && product && (
         <div className="flex items-center justify-center gap-3.5">
           {product.comparePrice ? <span className="text-muted text-[17px] line-through">{taka(product.comparePrice)}</span> : null}
-          <span className="text-[32px] font-bold">{taka(product.price)}</span>
+          <span className="text-[40px] leading-none font-extrabold tracking-tight">{taka(product.price)}</span>
         </div>
       )}
       {str(d.ctaText) && <OrderButton text={str(d.ctaText)} />}
@@ -117,7 +108,7 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
       {list(d.trust).length > 0 && (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(list(d.trust).length, 3)}, minmax(0,1fr))` }}>
           {list(d.trust).map((t, i) => (
-            <div key={i} className="bg-band flex flex-col items-center gap-1.5 rounded-[14px] px-1.5 py-3">
+            <div key={i} className="bg-band flex flex-col items-center gap-1.5 r-md px-1.5 py-3">
               <span className="text-accent"><Icon name={str(t.icon)} size={26} /></span>
               <span className="text-center text-[13px]">{str(t.label)}</span>
             </div>
@@ -131,11 +122,11 @@ function Hero({ d, ctx }: { d: D; ctx: Ctx }) {
 /* ---------------- PROBLEMS ---------------- */
 function Problems({ d }: { d: D }) {
   return (
-    <section className="bg-band flex flex-col gap-5 px-[18px] py-10">
+    <section className="bg-band flex flex-col gap-5 px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       <div className="grid grid-cols-2 gap-2.5">
         {list(d.items).map((it, i) => (
-          <div key={i} className="bg-card flex flex-col items-center gap-2.5 rounded-2xl px-3 py-[18px]">
+          <div key={i} className="bg-card flex flex-col items-center gap-2.5 r-md px-3 py-[18px]">
             <span className="bg-tint text-accent flex h-[52px] w-[52px] items-center justify-center rounded-full">
               <Icon name="cross" size={26} strokeWidth={2.2} />
             </span>
@@ -150,22 +141,22 @@ function Problems({ d }: { d: D }) {
 /* ---------------- PRODUCTS ---------------- */
 function Products({ d }: { d: D }) {
   return (
-    <section className="flex flex-col gap-[18px] px-[18px] py-10">
+    <section className="flex flex-col gap-[18px] px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       {list(d.items).map((p, i) => {
         const imgs = [str(p.image1), str(p.image2)].filter(Boolean);
         const tags = str(p.tags).split(",").map((t) => t.trim()).filter(Boolean);
         return (
-          <div key={i} className="bg-band border-line flex flex-col gap-3 rounded-[22px] border p-3">
+          <div key={i} className="bg-band border-line flex flex-col gap-3 r-lg border p-3">
             <div className={`grid gap-2 ${imgs.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
               {imgs.map((src, j) => (
-                <div key={j} className="bg-tile aspect-square overflow-hidden rounded-2xl">
+                <div key={j} className="bg-tile aspect-square overflow-hidden r-md">
                   <Img src={src} alt={str(p.name)} />
                 </div>
               ))}
             </div>
             <div className="flex items-center gap-2.5 px-1">
-              <span className="bg-accent rounded-lg px-2 py-0.5 text-[15px] font-bold">{toBn(String(i + 1).padStart(2, "0"))}</span>
+              <span className="bg-accent r-sm px-2 py-0.5 text-[15px] font-bold">{toBn(String(i + 1).padStart(2, "0"))}</span>
               <h3 className="m-0 text-[21px] font-bold">{str(p.name)}</h3>
             </div>
             {tags.length > 0 && (
@@ -187,9 +178,9 @@ function Comparison({ d }: { d: D }) {
   const yes = <span className="text-accent inline-flex"><Icon name="check" size={22} strokeWidth={3} label="হ্যাঁ" /></span>;
   const no = <span className="inline-flex text-[#8a8a91]"><Icon name="cross" size={20} strokeWidth={2.5} label="না" /></span>;
   return (
-    <section className="bg-band flex flex-col gap-[18px] px-[18px] py-10">
+    <section className="bg-band flex flex-col gap-[18px] px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
-      <table className="bg-card w-full border-separate border-spacing-0 overflow-hidden rounded-2xl text-base">
+      <table className="bg-card w-full border-separate border-spacing-0 overflow-hidden r-md text-base">
         <thead>
           <tr>
             <th scope="col" className="p-3.5 text-left"><span className="sr-only">বৈশিষ্ট্য</span></th>
@@ -214,11 +205,11 @@ function Comparison({ d }: { d: D }) {
 /* ---------------- GALLERY ---------------- */
 function Gallery({ d }: { d: D }) {
   return (
-    <section className="flex flex-col gap-[18px] px-[18px] py-10">
+    <section className="flex flex-col gap-[18px] px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       <div className="grid grid-cols-2 gap-2.5">
         {list(d.items).map((g, i) => (
-          <div key={i} className={`bg-tile relative overflow-hidden rounded-[18px] ${g.wide ? "col-span-2 aspect-[5/4]" : "aspect-square"}`}>
+          <div key={i} className={`bg-tile relative overflow-hidden r-md ${g.wide ? "col-span-2 aspect-[5/4]" : "aspect-square"}`}>
             <Img src={str(g.image)} alt={str(g.caption)} />
             {str(g.caption) && (
               <span className="bg-ground absolute bottom-2.5 left-2.5 rounded-full px-3 py-1 text-[13px] font-semibold">{str(g.caption)}</span>
@@ -235,7 +226,7 @@ function HowTo({ d }: { d: D }) {
   const steps = list(d.steps);
   const videos = list(d.videos).filter((v) => str(v.video) || str(v.poster));
   return (
-    <section className="bg-band flex flex-col gap-5 px-[18px] py-10">
+    <section className="bg-band flex flex-col gap-5 px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       {steps.length > 0 && (
         <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(steps.length, 4)}, minmax(0,1fr))` }}>
@@ -260,9 +251,9 @@ function HowTo({ d }: { d: D }) {
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(videos.length, 3)}, minmax(0,1fr))` }}>
             {videos.map((v, i) => (
               <div key={i} className="flex flex-col gap-1.5">
-                <div className="border-line aspect-[9/16] overflow-hidden rounded-[14px] border bg-black">
+                <div className="border-line aspect-[9/16] overflow-hidden r-md border bg-black">
                   {str(v.video) ? (
-                    <video src={str(v.video)} poster={str(v.poster) || undefined} controls playsInline preload="metadata" aria-label={str(v.label)} className="block h-full w-full object-cover" />
+                    <VideoPlayer src={str(v.video)} poster={str(v.poster)} label={str(v.label)} />
                   ) : (
                     <Img src={str(v.poster)} alt={str(v.label)} />
                   )}
@@ -282,17 +273,17 @@ function Reviews({ d }: { d: D }) {
   const items = list(d.items);
   if (items.length === 0) return null;
   return (
-    <section className="flex flex-col gap-[18px] px-[18px] py-10">
+    <section className="flex flex-col gap-[18px] px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       <div className="-mx-[18px] flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-[18px] pb-1">
         {items.map((r, i) =>
           str(r.image) ? (
-            <div key={i} className="bg-tile w-[62%] flex-none snap-start overflow-hidden rounded-[14px]">
+            <div key={i} className="bg-tile w-[62%] flex-none snap-start overflow-hidden r-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={str(r.image)} alt={str(r.name) ? `${str(r.name)}-এর রিভিউ` : "গ্রাহকের রিভিউ"} loading="lazy" className="block h-auto w-full" />
             </div>
           ) : (
-            <div key={i} className="bg-card flex w-[78%] flex-none snap-start flex-col gap-2.5 rounded-2xl p-5">
+            <div key={i} className="bg-card flex w-[78%] flex-none snap-start flex-col gap-2.5 r-md p-5">
               <span className="text-accent text-lg tracking-[2px]" aria-label="৫ তারকা">★★★★★</span>
               <p className="text-soft m-0 text-base">{str(r.text)}</p>
               {str(r.name) && <span className="text-muted text-sm">{str(r.name)}</span>}
@@ -309,11 +300,11 @@ function Faq({ d }: { d: D }) {
   const items = list(d.items);
   if (items.length === 0) return null;
   return (
-    <section className="flex flex-col gap-4 px-[18px] py-10">
+    <section className="flex flex-col gap-4 px-[18px] sec-y">
       <H2>{str(d.title)}</H2>
       <div className="flex flex-col gap-2.5">
         {items.map((f, i) => (
-          <details key={i} className="border-line group rounded-[14px] border px-4 py-3.5">
+          <details key={i} className="border-line group r-md border px-4 py-3.5">
             <summary className="flex min-h-[28px] cursor-pointer list-none items-center justify-between gap-3 text-[17px] font-bold">
               {str(f.q)}
               <span className="text-accent text-2xl leading-none transition group-open:rotate-45" aria-hidden>+</span>
@@ -329,8 +320,8 @@ function Faq({ d }: { d: D }) {
 /* ---------------- CTA ---------------- */
 function Cta({ d }: { d: D }) {
   return (
-    <section className="bg-tint flex flex-col gap-3 px-[18px] py-8 text-center">
-      <h2 className="m-0 text-[26px] font-bold">{str(d.title)}</h2>
+    <section className="bg-tint flex flex-col gap-3 px-[18px] py-10 text-center">
+      <h2 className="m-0 text-[28px] font-extrabold tracking-tight">{str(d.title)}</h2>
       {str(d.subtitle) && <p className="text-soft m-0">{str(d.subtitle)}</p>}
       <OrderButton text={str(d.buttonText) || "অর্ডার করুন"} />
     </section>
@@ -346,6 +337,7 @@ function Order({ d, ctx }: { d: D; ctx: Ctx }) {
         {str(d.subtitle) && <p className="text-muted m-0">{str(d.subtitle)}</p>}
       </div>
       <OrderForm
+        pageId={ctx.pageId}
         products={ctx.products.map((p) => ({ id: p.id, name: p.name, subtitle: p.subtitle, price: p.price, comparePrice: p.comparePrice, image: p.image }))}
         labels={{
           name: str(d.nameLabel) || "নাম",
@@ -365,18 +357,20 @@ function Order({ d, ctx }: { d: D; ctx: Ctx }) {
   );
 }
 
-export function SectionRenderer({ type, data, ctx }: { type: string; data: D; ctx: Ctx }) {
-  switch (type) {
-    case "hero": return <Hero d={data} ctx={ctx} />;
-    case "problems": return <Problems d={data} />;
-    case "products": return <Products d={data} />;
-    case "comparison": return <Comparison d={data} />;
-    case "gallery": return <Gallery d={data} />;
-    case "howto": return <HowTo d={data} />;
-    case "reviews": return <Reviews d={data} />;
-    case "faq": return <Faq d={data} />;
-    case "cta": return <Cta d={data} />;
-    case "order": return <Order d={data} ctx={ctx} />;
-    default: return null;
-  }
-}
+/** The built-in "classic" layouts. Other templates override individual entries. */
+export const classicComponents = {
+  hero: Hero,
+  problems: Problems,
+  products: Products,
+  comparison: Comparison,
+  gallery: Gallery,
+  howto: HowTo,
+  reviews: Reviews,
+  faq: Faq,
+  cta: Cta,
+  video: VideoSection,
+  features: Features,
+  beforeafter: BeforeAfter,
+  countdown: Countdown,
+  order: Order,
+} as const;

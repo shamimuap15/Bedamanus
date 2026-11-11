@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
-import { getSettings } from "@/lib/data";
+import { getPageById, getSettings, withPage } from "@/lib/data";
 import { fromBn } from "@/lib/sections";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,7 @@ const bodySchema = z.object({
     .refine((v) => /^01[3-9]\d{8}$/.test(v), "সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (০১XXXXXXXXX)"),
   address: z.string().trim().min(8, "সম্পূর্ণ ঠিকানা লিখুন").max(300, "ঠিকানা অনেক বড়"),
   note: z.string().trim().max(300).optional().default(""),
+  pageId: z.coerce.number().int().positive().optional(),
   productId: z.coerce.number().int().positive(),
   qty: z.coerce.number().int().min(1).max(10),
   area: z.enum(["inside", "outside"]).default("inside"),
@@ -76,6 +77,9 @@ export async function POST(req: Request) {
   const product = await db.query.products.findFirst({
     where: and(eq(schema.products.id, input.productId), eq(schema.products.active, true)),
   });
+  if (product && input.pageId && product.pageId && product.pageId !== input.pageId) {
+    return NextResponse.json({ message: "এই প্রোডাক্টটি এখন পাওয়া যাচ্ছে না" }, { status: 422 });
+  }
   if (!product) return NextResponse.json({ message: "এই প্রোডাক্টটি এখন পাওয়া যাচ্ছে না" }, { status: 422 });
 
   // Double-submit protection: same phone + product within 10 minutes returns the existing order.
@@ -87,7 +91,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ orderNo: recent.orderNo, duplicate: true });
   }
 
-  const settings = await getSettings();
+  const pageId = input.pageId ?? product.pageId ?? null;
+  const page = await getPageById(pageId);
+  const site = await getSettings();
+  const settings = page ? withPage(site, page) : site;
   const inside = Number(settings.deliveryInside) || 0;
   const outside = Number(settings.deliveryOutside) || 0;
   const deliveryCharge = input.area === "outside" ? outside : inside;
@@ -99,6 +106,7 @@ export async function POST(req: Request) {
     try {
       await db.insert(schema.orders).values({
         orderNo,
+        pageId,
         name: input.name,
         phone,
         address: input.address,

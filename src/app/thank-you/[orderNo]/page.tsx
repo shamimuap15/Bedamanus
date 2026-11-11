@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { getSettings } from "@/lib/data";
+import { getPageById, getSettings, withPage } from "@/lib/data";
 import { str, taka, toBn } from "@/lib/sections";
 import { Footer, Header, MetaPixel, accentStyle } from "@/components/landing/Chrome";
 import { PurchaseEvent } from "./PurchaseEvent";
@@ -12,13 +12,16 @@ export const metadata = { title: "ধন্যবাদ – BedaManush", robots:
 
 export default async function ThankYou({ params }: { params: Promise<{ orderNo: string }> }) {
   const { orderNo } = await params;
-  const [order, settings] = await Promise.all([
+  const [order, site] = await Promise.all([
     db.query.orders.findFirst({ where: eq(schema.orders.orderNo, orderNo) }),
     getSettings(),
   ]);
   // Only show recent orders (48h) so old order pages can't be browsed.
   if (!order || Date.now() - order.createdAt.getTime() > 48 * 3600_000) notFound();
 
+  const page = await getPageById(order.pageId);
+  const settings = page ? withPage(site, page) : site;
+  const backHref = page && !page.isHome ? `/${page.slug}` : "/";
   const maskedPhone = order.phone.slice(0, 3) + "*****" + order.phone.slice(-3);
 
   return (
@@ -53,7 +56,7 @@ export default async function ThankYou({ params }: { params: Promise<{ orderNo: 
             প্রশ্ন থাকলে কল করুন: {str(settings.phone)}
           </a>
         )}
-        <Link href="/" className="text-accent text-center">← মূল পেজে ফিরে যান</Link>
+        <Link href={backHref} className="text-accent text-center">← মূল পেজে ফিরে যান</Link>
       </main>
       <Footer s={settings} />
       <MetaPixel pixelId={str(settings.pixelId)} />

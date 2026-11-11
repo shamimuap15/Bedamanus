@@ -26,10 +26,10 @@ export default async function Dashboard() {
   const statusCount = Object.fromEntries(byStatus.map((s) => [s.status, s]));
   const delivered = statusCount.delivered?.total ?? 0;
 
-  const card = "rounded-xl border border-[#e6e8ec] bg-white p-5";
+  const card = "rounded-xl border border-[#e7e5df] bg-white p-5";
   return (
     <div className="flex flex-col gap-6">
-      <div><h1 className="m-0 text-2xl font-bold">Dashboard</h1><p className="m-0 text-sm text-[#6b7280]">Overview of your orders and sales.</p></div>
+      <div><div className="admin-eyebrow mb-2">Overview</div><h1 className="m-0 text-4xl">Dashboard</h1><p className="m-0 mt-1 text-[15px] text-[#6f6e76]">Your orders and sales at a glance.</p></div>
 
       {products.some((p) => p.price === 990 && p.comparePrice === 1490) && (
         <div className="rounded-xl border border-[#f0c36d] bg-[#fff8e6] p-4 text-sm">
@@ -39,17 +39,17 @@ export default async function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#2457d6" }}><div className="text-sm text-[#6b7280]">Orders today</div><div className="mt-1 text-3xl font-bold">{todayStats[0].count}</div><div className="text-sm text-[#6b7280]">{fmtBDT(todayStats[0].total)}</div></div>
-        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#7c3aed" }}><div className="text-sm text-[#6b7280]">Last 7 days</div><div className="mt-1 text-3xl font-bold">{weekStats[0].count}</div><div className="text-sm text-[#6b7280]">{fmtBDT(weekStats[0].total)}</div></div>
-        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#f59e0b" }}><div className="text-sm text-[#6b7280]">Pending to confirm</div><div className="mt-1 text-3xl font-bold">{statusCount.pending?.count ?? 0}</div><Link href="/admin/orders?status=pending" className="text-sm font-semibold">Open →</Link></div>
-        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#16a34a" }}><div className="text-sm text-[#6b7280]">Delivered revenue</div><div className="mt-1 text-3xl font-bold">{fmtBDT(delivered)}</div><div className="text-sm text-[#6b7280]">{statusCount.delivered?.count ?? 0} orders</div></div>
+        <div className={`${card} admin-stat admin-stat-hero col-span-2 md:col-span-1`}><div className="admin-eyebrow !text-[#a7a7b0]">Orders today</div><div className="mt-2 text-5xl font-extrabold tracking-tight text-accent">{todayStats[0].count}</div><div className="text-sm text-[#a7a7b0]">{fmtBDT(todayStats[0].total)}</div></div>
+        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#7c3aed" }}><div className="admin-eyebrow">Last 7 days</div><div className="mt-2 text-3xl font-extrabold tracking-tight">{weekStats[0].count}</div><div className="text-sm text-[#6b7280]">{fmtBDT(weekStats[0].total)}</div></div>
+        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#f59e0b" }}><div className="admin-eyebrow">Pending to confirm</div><div className="mt-2 text-3xl font-extrabold tracking-tight">{statusCount.pending?.count ?? 0}</div><Link href="/admin/orders?status=pending" className="text-sm font-semibold">Open →</Link></div>
+        <div className={`${card} admin-stat`} style={{ ["--c" as string]: "#16a34a" }}><div className="admin-eyebrow">Delivered revenue</div><div className="mt-2 text-3xl font-extrabold tracking-tight">{fmtBDT(delivered)}</div><div className="text-sm text-[#6b7280]">{statusCount.delivered?.count ?? 0} orders</div></div>
       </div>
 
       <div className={card}>
         <h2 className="m-0 mb-3 text-base font-bold">Orders by status</h2>
         <div className="flex flex-wrap gap-2">
           {ORDER_STATUSES.map((s) => (
-            <Link key={s} href={`/admin/orders?status=${s}`} className="rounded-lg border border-[#e4e4e0] px-3 py-2 text-sm text-[#1f1f1f] no-underline">
+            <Link key={s} href={`/admin/orders?status=${s}`} className="rounded-full border border-[#e7e5df] bg-[#faf9f6] px-4 py-2 text-sm text-[#1f1f1f] no-underline transition hover:border-[#121214]">
               <span style={{ color: STATUS_META[s].fg }} className="font-bold">{STATUS_META[s].label}</span> · {statusCount[s]?.count ?? 0}
             </Link>
           ))}

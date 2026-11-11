@@ -6,6 +6,8 @@
  * editable without touching the admin UI.
  */
 
+import { BUTTONS, DESIGN_DEFAULTS, FONTS, HEADLINES, RADII, SPACINGS, STICKY_STYLES, THEMES } from "./design";
+
 export type FieldDef =
   | { key: string; label: string; type: "text"; placeholder?: string; help?: string }
   | { key: string; label: string; type: "textarea"; placeholder?: string; help?: string }
@@ -14,6 +16,7 @@ export type FieldDef =
   | { key: string; label: string; type: "boolean"; help?: string }
   | { key: string; label: string; type: "number"; help?: string }
   | { key: string; label: string; type: "color"; help?: string }
+  | { key: string; label: string; type: "choice"; options: { value: string; label: string; swatch?: string[] }[]; help?: string }
   | { key: string; label: string; type: "icon"; help?: string }
   | { key: string; label: string; type: "list"; itemLabel: string; fields: FieldDef[]; help?: string };
 
@@ -47,6 +50,10 @@ export type SectionType =
   | "reviews"
   | "faq"
   | "cta"
+  | "video"
+  | "features"
+  | "beforeafter"
+  | "countdown"
   | "order";
 
 type SectionDef = {
@@ -65,11 +72,12 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     label: "Hero",
     description: "Hook headline, video, product thumbnails, price and main button.",
     fields: [
+      { key: "logo", label: "Brand logo over the image (optional)", type: "image" },
       { key: "badge", label: "Warning tag above headline", type: "text" },
       { key: "titleLine1", label: "Headline – line 1", type: "text" },
       { key: "titleHighlight", label: "Headline – highlighted line", type: "text" },
       { key: "subtitle", label: "Sub-headline", type: "textarea" },
-      { key: "video", label: "Hero video (MP4)", type: "video", help: "Leave empty to show the cover image only." },
+      { key: "video", label: "Hero video", type: "video", help: "YouTube or Vimeo link, or an MP4. Leave empty to show the cover image only." },
       { key: "poster", label: "Video cover / hero image", type: "image" },
       { key: "autoplay", label: "Autoplay video (muted, loop)", type: "boolean" },
       { key: "videoLabel", label: "Small label on video", type: "text" },
@@ -166,6 +174,8 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
           { key: "label", label: "Feature", type: "text" },
           { key: "a", label: "Column A has it", type: "boolean" },
           { key: "b", label: "Column B has it", type: "boolean" },
+          { key: "aText", label: "Column A short text (optional)", type: "text" },
+          { key: "bText", label: "Column B short text (optional)", type: "text" },
         ],
       },
     ],
@@ -203,6 +213,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
         fields: [
           { key: "icon", label: "Icon", type: "icon" },
           { key: "label", label: "Text", type: "text" },
+          { key: "text", label: "Short description (optional)", type: "text" },
         ],
       },
       { key: "videosTitle", label: "Videos heading", type: "text" },
@@ -212,7 +223,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
         type: "list",
         itemLabel: "Video",
         fields: [
-          { key: "video", label: "Video (MP4)", type: "video" },
+          { key: "video", label: "Video (YouTube, Vimeo or MP4)", type: "video" },
           { key: "poster", label: "Cover image", type: "image" },
           { key: "label", label: "Label", type: "text" },
         ],
@@ -225,6 +236,19 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     description: "Review screenshots or written reviews.",
     fields: [
       title,
+      { key: "score", label: "Average rating, e.g. ৪.৮ (optional summary)", type: "text" },
+      { key: "count", label: "Review count text, e.g. ২,৫৩০টি রিভিউ", type: "text" },
+      {
+        key: "bars",
+        label: "Rating breakdown",
+        type: "list",
+        itemLabel: "Row",
+        fields: [
+          { key: "star", label: "Stars (৫, ৪…)", type: "text" },
+          { key: "percent", label: "Percent (0–100)", type: "number" },
+        ],
+      },
+      { key: "delivered", label: "Social-proof line, e.g. ৬৬,০০০+ ডেলিভার্ড অর্ডার", type: "text" },
       {
         key: "items",
         label: "Reviews",
@@ -232,8 +256,10 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
         itemLabel: "Review",
         fields: [
           { key: "image", label: "Screenshot (optional)", type: "image" },
+          { key: "avatar", label: "Customer photo (optional)", type: "image" },
           { key: "text", label: "Review text (if no screenshot)", type: "textarea" },
           { key: "name", label: "Customer name", type: "text" },
+          { key: "city", label: "City", type: "text" },
         ],
       },
     ],
@@ -266,6 +292,55 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
       { key: "buttonText", label: "Button text", type: "text" },
     ],
     defaults: { title: "আজই অর্ডার করুন", subtitle: "ক্যাশ অন ডেলিভারি", buttonText: "অর্ডার করুন" },
+  },
+  video: {
+    label: "Video",
+    description: "A single video (YouTube, Vimeo or MP4) with a title and optional button.",
+    fields: [
+      { key: "title", label: "Title (wrap words in *stars* to colour them)", type: "text" },
+      { key: "video", label: "Video (YouTube, Vimeo or MP4)", type: "video" },
+      { key: "poster", label: "Cover image (MP4 only)", type: "image" },
+      { key: "ratio", label: "Shape", type: "choice", options: [{ value: "16:9", label: "Wide 16:9" }, { value: "1:1", label: "Square" }, { value: "9:16", label: "Tall 9:16 (Reels/Shorts)" }] },
+      { key: "ctaText", label: "Button text (empty = no button)", type: "text" },
+    ],
+    defaults: { title: "", video: "", poster: "", ratio: "16:9", ctaText: "" },
+  },
+  features: {
+    label: "Product features",
+    description: "Product image with a headline tag and short feature badges.",
+    fields: [
+      { key: "kicker", label: "Tag on the image, e.g. 30 SEC CLEAN", type: "text" },
+      { key: "image", label: "Image", type: "image" },
+      { key: "badges", label: "Badges", type: "list", itemLabel: "Badge", fields: [{ key: "label", label: "Text", type: "text" }] },
+    ],
+    defaults: { kicker: "", image: "", badges: [] },
+  },
+  beforeafter: {
+    label: "Before / after slider",
+    description: "Drag slider comparing two photos, with checks and a button.",
+    fields: [
+      { key: "title", label: "Title (wrap words in *stars* to colour them)", type: "text" },
+      { key: "before", label: "Before photo", type: "image" },
+      { key: "after", label: "After photo", type: "image" },
+      { key: "beforeLabel", label: "Before label", type: "text" },
+      { key: "afterLabel", label: "After label", type: "text" },
+      { key: "beforeNote", label: "Before note", type: "text" },
+      { key: "afterNote", label: "After note", type: "text" },
+      { key: "hint", label: "Hint under the slider", type: "text" },
+      { key: "checks", label: "Checks", type: "list", itemLabel: "Check", fields: [{ key: "label", label: "Text", type: "text" }] },
+      { key: "ctaText", label: "Button text (empty = no button)", type: "text" },
+    ],
+    defaults: { title: "আগে ও *পরে*", before: "", after: "", beforeLabel: "আগে", afterLabel: "পরে", beforeNote: "", afterNote: "", hint: "স্লাইডার ড্র্যাগ করে পার্থক্য দেখুন", checks: [], ctaText: "" },
+  },
+  countdown: {
+    label: "Offer countdown",
+    description: "Countdown timer that restarts for each visitor.",
+    fields: [
+      { key: "label", label: "Label", type: "text" },
+      { key: "hours", label: "Hours", type: "number" },
+      { key: "minutes", label: "Minutes", type: "number" },
+    ],
+    defaults: { label: "অফার শেষ হতে বাকি", hours: 7, minutes: 30 },
   },
   order: {
     label: "Order form",
@@ -302,8 +377,6 @@ export const SETTINGS_FIELDS: FieldDef[] = [
   { key: "ogImage", label: "Share image (Facebook preview)", type: "image" },
   { key: "logo", label: "Logo", type: "image" },
   { key: "announcement", label: "Top announcement bar (empty = hidden)", type: "text" },
-  { key: "accentColor", label: "Brand accent colour", type: "color" },
-  { key: "accentTextColor", label: "Text colour on accent buttons", type: "color" },
   { key: "phone", label: "Phone number (shown)", type: "text" },
   { key: "phoneLink", label: "Phone number for calling (e.g. +8801719119992)", type: "text" },
   { key: "whatsapp", label: "WhatsApp number (e.g. 8801719119992)", type: "text" },
@@ -320,14 +393,28 @@ export const SETTINGS_FIELDS: FieldDef[] = [
   { key: "pixelId", label: "Meta (Facebook) Pixel ID", type: "text", help: "Fires PageView, InitiateCheckout and Purchase." },
 ];
 
+const opts = (t: Record<string, { label: string }>) => Object.entries(t).map(([value, v]) => ({ value, label: v.label }));
+
+/** Fields on the admin "Design" screen — all feed designVars() in lib/design.ts. */
+export const DESIGN_FIELDS: FieldDef[] = [
+  { key: "theme", label: "Colour theme", type: "choice", options: Object.entries(THEMES).map(([value, v]) => ({ value, label: v.label, swatch: [v.p.ground, v.p.card, v.p.fg] })) },
+  { key: "accentColor", label: "Brand accent colour", type: "color", help: "Buttons, highlights and icons." },
+  { key: "accentTextColor", label: "Text colour on accent buttons", type: "color" },
+  { key: "font", label: "Font", type: "choice", options: opts(FONTS) },
+  { key: "headlineSize", label: "Headline size", type: "choice", options: opts(HEADLINES) },
+  { key: "radius", label: "Corners", type: "choice", options: opts(RADII) },
+  { key: "buttonShape", label: "Button shape", type: "choice", options: opts(BUTTONS) },
+  { key: "spacing", label: "Section spacing", type: "choice", options: opts(SPACINGS) },
+  { key: "stickyStyle", label: "Sticky order bar style", type: "choice", options: opts(STICKY_STYLES) },
+];
+
 export const DEFAULT_SETTINGS: Record<string, unknown> = {
+  ...DESIGN_DEFAULTS,
   siteTitle: "৩-ইন-১ সিলিকন বাথ কম্বো – BedaManush",
   metaDescription: "লং হ্যান্ডেল বডি ব্রাশ + হেয়ার ম্যাসাজ ব্রাশ + ফ্ল্যাট বডি স্ক্রাবার। ক্যাশ অন ডেলিভারি।",
   ogImage: "",
   logo: "",
   announcement: "ক্যাশ অন ডেলিভারি · সারাদেশে",
-  accentColor: "#C8FF3D",
-  accentTextColor: "#1F1F1F",
   phone: "০১৭১৯-১১৯৯৯২",
   phoneLink: "+8801719119992",
   whatsapp: "8801719119992",

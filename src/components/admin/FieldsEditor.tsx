@@ -50,6 +50,30 @@ function Field({ def, id, value, onChange }: { def: FieldDef; id: string; value:
           </div>
         </div>
       );
+    case "choice":
+      return (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold" id={id}>{def.label}</span>
+          <div role="radiogroup" aria-labelledby={id} className="flex flex-wrap gap-2">
+            {def.options.map((o) => {
+              const on = s === o.value;
+              return (
+                <button
+                  type="button" key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)}
+                  className={`flex min-h-[44px] items-center gap-2 rounded-xl border-2 px-3.5 py-2 text-sm font-bold transition ${on ? "border-[#121214] bg-[#121214] text-white" : "border-[#dad8d0] bg-white text-[#121214] hover:border-[#121214]"}`}
+                >
+                  {o.swatch && (
+                    <span className="flex overflow-hidden rounded-full border border-black/15" aria-hidden>
+                      {o.swatch.map((c, i) => <span key={i} className="h-5 w-3.5" style={{ background: c }} />)}
+                    </span>
+                  )}
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
     case "image":
     case "video":
       return <div className="flex flex-col gap-1">{label}<MediaInput id={id} kind={def.type} value={s} onChange={onChange} /></div>;
